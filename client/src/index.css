@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@theme {
+  /* Yazio-inspired light palette */
+  --color-brand: #EF4444;
+  --color-brand-dark: #DC2626;
+  --color-brand-light: #FEF2F2;
+
+  --color-accent-yellow: #FFD95A;
+  --color-accent-coral: #FF8B6A;
+  --color-accent-blue: #6EB5FF;
+  --color-accent-purple: #B39DFF;
+
+  --color-bg: #FFFFFF;
+  --color-bg-soft: #F7F9FC;
+  --color-bg-muted: #EFF3F8;
+
+  --color-text: #111111;
+  --color-text-muted: #6B7280;
+  --color-text-light: #9CA3AF;
+
+  --color-border: #E5E7EB;
+  --color-border-strong: #D1D5DB;
+
+  --color-card: #FFFFFF;
+  --color-card-hover: #F9FAFB;
+
+  /* Keep some tokens for compatibility */
+  --color-primary: #EF4444;
+  --color-primary-container: #EF4444;
+  --color-on-primary: #FFFFFF;
+  --color-on-primary-container: #FFFFFF;
+}
+
+/* ── Semantic utility aliases ──────────────────────────────────────────── */
+/* Brand */
+.text-brand          { color: #EF4444; }
+.text-brand-dark     { color: #DC2626; }
+.bg-brand            { background-color: #EF4444; }
+.bg-brand-dark       { background-color: #DC2626; }
+.bg-brand-light      { background-color: #FEF2F2; }
+.border-brand        { border-color: #EF4444; }
+.ring-brand          { --tw-ring-color: #EF4444; }
+
+/* Accents */
+.text-accent-blue    { color: #6EB5FF; }
+.bg-accent-blue-light { background-color: #EFF6FF; }
+.text-accent-amber   { color: #F59E0B; }
+.bg-accent-amber-light { background-color: #FFFBEB; }
+
+/* Backgrounds */
+.bg-surface          { background-color: #F7F9FC; }
+.bg-card             { background-color: #FFFFFF; }
+
+/* Text */
+.text-primary        { color: #111111; }
+.text-muted          { color: #6B7280; }
+.text-light          { color: #9CA3AF; }
+
+/* Borders */
+.border-default      { border-color: #E5E7EB; }
+
+/* ── Consistent border-radius scale ───────────────────────────────────── */
+/* Use these instead of arbitrary rounded-[] values:                       */
+/* rounded-card  = 24px  (cards, panels)                                   */
+/* rounded-inner = 16px  (inner elements, chips, inputs)                   */
+/* rounded-pill  = 999px (buttons, badges, tags)                           */
+.rounded-card  { border-radius: 24px; }
+.rounded-inner { border-radius: 16px; }
+.rounded-pill  { border-radius: 999px; }
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent iOS text inflation */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #FFFFFF;
+  color: #111111;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Yazio-style pill button */
+.btn-brand {
+  background: #EF4444;
+  color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 14px 32px;
+  transition: background 0.2s, transform 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-brand:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+}
+.btn-brand:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+.btn-dark {
+  background: #111111;
+  color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 14px 32px;
+  transition: background 0.2s, transform 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-dark:hover {
+  background: #222;
+  transform: translateY(-1px);
+}
+
+/* Card */
+.ff-card {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.07);
+  padding: 28px;
+}
