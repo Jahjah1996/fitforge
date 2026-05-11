@@ -96,7 +96,7 @@ export default function WorkoutGenerator() {
         return newPlan;
       };
 
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out. The AI took too long to respond.")), 30000));
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 60s. Please try again.")), 60000));
       const newPlan = await Promise.race([generatePromise(), timeoutPromise]);
       
       setPlan(newPlan);

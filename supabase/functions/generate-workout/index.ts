@@ -123,25 +123,37 @@ serve(async (req) => {
     }));
     console.log("[generate-workout] Plan generated with", plan.length, "days.");
 
-    // Attach GIFs — use Tenor with fallback to curated library
+    // Attach GIFs in PARALLEL — all fetches fire simultaneously instead of sequentially
+    const gifTimeout = (ms: number) => new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+
+    const fetchGif = async (name: string): Promise<string> => {
+      try {
+        const query = encodeURIComponent(name + " exercise");
+        const tenorRes = await Promise.race([
+          fetch(`https://g.tenor.com/v1/search?q=${query}&key=LIVDSRZULELA&limit=1`),
+          gifTimeout(3000)
+        ]) as Response;
+        if (tenorRes.ok) {
+          const data = await tenorRes.json();
+          return data.results?.length ? data.results[0].media[0].gif.url : getFallbackGif(name);
+        }
+        return getFallbackGif(name);
+      } catch {
+        return getFallbackGif(name);
+      }
+    };
+
+    // Collect all exercises across all days and fetch their GIFs in parallel
+    const allExercises: { ex: any; name: string }[] = [];
     for (const day of plan) {
       for (const ex of day.exercises) {
-        try {
-          const query = encodeURIComponent(ex.name + " exercise");
-          const tenorRes = await fetch(`https://g.tenor.com/v1/search?q=${query}&key=LIVDSRZULELA&limit=1`);
-          if (tenorRes.ok) {
-            const data = await tenorRes.json();
-            ex.gif_url = data.results?.length
-              ? data.results[0].media[0].gif.url
-              : getFallbackGif(ex.name);
-          } else {
-            ex.gif_url = getFallbackGif(ex.name);
-          }
-        } catch {
-          ex.gif_url = getFallbackGif(ex.name);
-        }
+        allExercises.push({ ex, name: ex.name });
       }
     }
+    console.log(`[generate-workout] Fetching ${allExercises.length} GIFs in parallel...`);
+    const gifUrls = await Promise.all(allExercises.map(({ name }) => fetchGif(name)));
+    allExercises.forEach(({ ex }, i) => { ex.gif_url = gifUrls[i]; });
+    console.log("[generate-workout] GIFs attached.");
 
     console.log("[generate-workout] Success! Returning plan.");
     return new Response(JSON.stringify(plan), {
