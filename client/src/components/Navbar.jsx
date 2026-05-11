@@ -1,9 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100">
@@ -31,7 +37,7 @@ export default function Navbar() {
                   Nutrition
                 </Link>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="text-gray-500 hover:text-brand font-semibold text-sm px-4 py-2 rounded-pill transition-colors ml-2"
                 >
                   Sign out
