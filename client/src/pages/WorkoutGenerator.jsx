@@ -168,16 +168,6 @@ export default function WorkoutGenerator() {
 
           <h1 className="font-black text-3xl text-[#111] mb-6">{ex.name}</h1>
 
-          {ex.gif_url && (
-            <div className="flex justify-center mb-6">
-              <img
-                src={ex.gif_url}
-                alt={ex.name}
-                onError={e => { e.target.style.display = "none"; }}
-                className="h-44 rounded-2xl object-cover border border-gray-100"
-              />
-            </div>
-          )}
 
           <div className="flex justify-center gap-4 mb-6">
             {[
@@ -429,18 +419,9 @@ export default function WorkoutGenerator() {
                     return (
                       <div key={j} className="flex items-center justify-between bg-[#F7F9FC] rounded-2xl p-4">
                         <div className="flex items-center gap-4">
-                          {ex.gif_url ? (
-                            <img
-                              src={ex.gif_url}
-                              alt={ex.name}
-                              onError={e => { e.target.style.display = "none"; }}
-                              className="w-10 h-10 md:w-14 md:h-14 rounded-xl object-cover bg-white border border-gray-200 flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-[#FEF2F2] flex items-center justify-center flex-shrink-0">
-                              <span className="material-symbols-outlined text-[#EF4444]">fitness_center</span>
-                            </div>
-                          )}
+                          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-[#FEF2F2] flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-[#EF4444]">fitness_center</span>
+                          </div>
                           <div>
                             <div className="flex items-center gap-2 mb-0.5">
                               <p className="font-bold text-[#111] text-sm">{ex.name}</p>
