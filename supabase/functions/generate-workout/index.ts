@@ -34,17 +34,47 @@ function normalizeWorkoutPreferences(preferencesOrGoal: any, level?: string, equ
   };
 }
 
+// Curated fallback GIFs by keyword so every exercise has a relevant image
+const FALLBACK_GIFS: Record<string, string> = {
+  "push": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Push-Up.gif",
+  "squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Squat.gif",
+  "deadlift": "https://fitnessprogramer.com/wp-content/uploads/2021/06/Barbell-Deadlift.gif",
+  "lunge": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lunge.gif",
+  "curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Bicep-Curl.gif",
+  "press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Shoulder-Press.gif",
+  "row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Row.gif",
+  "plank": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Plank.gif",
+  "crunch": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Crunch.gif",
+  "pull": "https://fitnessprogramer.com/wp-content/uploads/2022/01/Pull-Up.gif",
+  "dip": "https://fitnessprogramer.com/wp-content/uploads/2021/06/Tricep-Dips.gif",
+  "burpee": "https://fitnessprogramer.com/wp-content/uploads/2021/06/Burpee.gif",
+  "run": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Jumping-jacks.gif",
+  "jump": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Jumping-jacks.gif",
+  "default": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Jumping-jacks.gif",
+};
+
+function getFallbackGif(exerciseName: string): string {
+  const lower = exerciseName.toLowerCase();
+  for (const [keyword, url] of Object.entries(FALLBACK_GIFS)) {
+    if (lower.includes(keyword)) return url;
+  }
+  return FALLBACK_GIFS["default"];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    console.log("[generate-workout] Parsing request body...");
     const body = await req.json();
     const preferences = normalizeWorkoutPreferences(
         { ...body, focusAreas: Array.isArray(body.focusAreas) ? body.focusAreas : [] }
     );
+    console.log("[generate-workout] Preferences:", JSON.stringify(preferences));
 
+    console.log("[generate-workout] Initializing Gemini AI...");
     const genAI = getGenAI();
     const model = genAI.getGenerativeModel({
       model: MODEL,
@@ -85,33 +115,44 @@ serve(async (req) => {
         }
       ]`;
 
-    const plan = await withRetry(() => model.generateContent(prompt).then(r => JSON.parse(cleanJSON(r.response.text()))));
+    console.log("[generate-workout] Calling Gemini API...");
+    const plan = await withRetry(() => model.generateContent(prompt).then(r => {
+      const text = r.response.text();
+      console.log("[generate-workout] Raw AI response length:", text.length);
+      return JSON.parse(cleanJSON(text));
+    }));
+    console.log("[generate-workout] Plan generated with", plan.length, "days.");
 
-    // Attach dynamic GIFs via Tenor API
+    // Attach GIFs — use Tenor with fallback to curated library
     for (const day of plan) {
       for (const ex of day.exercises) {
         try {
           const query = encodeURIComponent(ex.name + " exercise");
           const tenorRes = await fetch(`https://g.tenor.com/v1/search?q=${query}&key=LIVDSRZULELA&limit=1`);
-          const data = await tenorRes.json();
-          ex.gif_url = data.results?.length
-            ? data.results[0].media[0].gif.url
-            : "https://fitnessprogramer.com/wp-content/uploads/2021/02/Jumping-jacks.gif";
+          if (tenorRes.ok) {
+            const data = await tenorRes.json();
+            ex.gif_url = data.results?.length
+              ? data.results[0].media[0].gif.url
+              : getFallbackGif(ex.name);
+          } else {
+            ex.gif_url = getFallbackGif(ex.name);
+          }
         } catch {
-          ex.gif_url = "https://fitnessprogramer.com/wp-content/uploads/2021/02/Jumping-jacks.gif";
+          ex.gif_url = getFallbackGif(ex.name);
         }
       }
     }
 
+    console.log("[generate-workout] Success! Returning plan.");
     return new Response(JSON.stringify(plan), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error: any) {
-    console.error(error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[generate-workout] FATAL ERROR:", error?.message, error?.stack);
+    return new Response(JSON.stringify({ error: error.message || "Unknown error in generate-workout" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 500,
     });
   }
 });
