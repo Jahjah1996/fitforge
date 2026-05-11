@@ -17,8 +17,12 @@ export default function Register() {
     setLoading(true);
     setError("");
     try {
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out. Please try again.")), 15000));
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Request timed out after 30s. Please check your network connection.")), 30000);
+      });
       await Promise.race([register(name, email, password), timeoutPromise]);
+      clearTimeout(timeoutId);
       navigate("/");
     } catch (err) {
       console.error("Registration error:", err);
