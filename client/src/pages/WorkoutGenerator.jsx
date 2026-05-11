@@ -87,31 +87,49 @@ export default function WorkoutGenerator() {
     }
     setLoading(true); setError(null);
     try {
-      const { data: newPlan, error: aiError } = await supabase.functions.invoke('generate-workout', {
-        body: form
-      });
-      
-      if (aiError) throw aiError;
-      if (!Array.isArray(newPlan)) throw new Error("Invalid workout plan format returned from AI.");
+      const generatePromise = async () => {
+        const { data: newPlan, error: aiError } = await supabase.functions.invoke('generate-workout', {
+          body: form
+        });
+        if (aiError) throw aiError;
+        if (!Array.isArray(newPlan)) throw new Error("Invalid workout plan format returned from AI.");
+        return newPlan;
+      };
+
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out. The AI took too long to respond.")), 30000));
+      const newPlan = await Promise.race([generatePromise(), timeoutPromise]);
       
       setPlan(newPlan);
       
-      // Save it to the user's profile
-      await updateProfile({
+      // Save it to the user's profile with a separate shorter timeout
+      const savePromise = updateProfile({
         workout_profile: form,
         saved_workout_plan: newPlan
       });
-    } catch {
-      setError("Failed to generate plan. Please try again.");
+      const saveTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Plan generated, but saving to profile timed out.")), 10000));
+      await Promise.race([savePromise, saveTimeout]);
+
+    } catch (err) {
+      console.error("AI Generation error:", err);
+      setError(err.message || "Failed to generate plan. Please try again.");
     }
     setLoading(false);
   };
 
   const startWorkout = (day) => { setActiveDay(day); setCurrentExerciseIndex(0); window.scrollTo(0, 0); };
-  const nextExercise = () => {
+  const nextExercise = async () => {
     if (currentExerciseIndex < activeDay.exercises.length - 1) {
       setCurrentExerciseIndex(p => p + 1);
     } else {
+      const dayIndex = plan.findIndex(d => d.day === activeDay.day);
+      if (dayIndex !== -1 && !plan[dayIndex].completed) {
+        const newPlan = [...plan];
+        newPlan[dayIndex] = { ...newPlan[dayIndex], completed: true };
+        setPlan(newPlan);
+        if (user) {
+          await updateProfile({ saved_workout_plan: newPlan });
+        }
+      }
       setActiveDay(null);
     }
   };
@@ -373,19 +391,36 @@ export default function WorkoutGenerator() {
           </div>
 
           <div className="grid gap-5">
-            {plan.map((day, i) => (
-              <div key={i} className="bg-white rounded-3xl shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-gray-100 overflow-hidden hover:shadow-[0_4px_24px_rgba(0,0,0,0.10)] transition-shadow">
+            {plan.map((day, i) => {
+              const firstUncompletedIndex = plan.findIndex(d => !d.completed);
+              const unlockUpToIndex = firstUncompletedIndex === -1 ? plan.length - 1 : firstUncompletedIndex;
+              const isLocked = i > unlockUpToIndex;
+
+              return (
+              <div key={i} className={`bg-white rounded-3xl shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-gray-100 overflow-hidden transition-shadow ${isLocked ? 'opacity-60 grayscale-[0.2]' : 'hover:shadow-[0_4px_24px_rgba(0,0,0,0.10)]'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 md:px-7 py-4 md:py-5 border-b border-gray-100">
                   <div>
-                    <h3 className="font-black text-xl text-[#111]">{day.day}</h3>
+                    <h3 className="font-black text-xl text-[#111] flex items-center">
+                      {day.day}
+                      {day.completed && <span className="material-symbols-outlined text-green-500 ml-2 text-xl">check_circle</span>}
+                    </h3>
                     <p className="text-[#EF4444] text-sm font-bold mt-0.5">{day.muscle_group}</p>
                   </div>
-                  <button
-                    onClick={() => startWorkout(day)}
-                    className="btn-brand text-sm py-2.5 px-6"
-                  >
-                    Start →
-                  </button>
+                  {isLocked ? (
+                    <button
+                      disabled
+                      className="bg-gray-100 text-gray-400 font-bold rounded-2xl text-sm py-2.5 px-6 flex items-center gap-2 cursor-not-allowed"
+                    >
+                      <span className="material-symbols-outlined text-sm">lock</span> Locked
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => startWorkout(day)}
+                      className="btn-brand text-sm py-2.5 px-6"
+                    >
+                      {day.completed ? "Review →" : "Start →"}
+                    </button>
+                  )}
                 </div>
 
                 <div className="p-5 grid gap-3">
@@ -434,7 +469,8 @@ export default function WorkoutGenerator() {
                   })}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

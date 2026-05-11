@@ -15,13 +15,17 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     try {
-      await register(name, email, password);
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out. Please try again.")), 15000));
+      await Promise.race([register(name, email, password), timeoutPromise]);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to register. Please try again.");
+      console.error("Registration error:", err);
+      setError(err.message || "Failed to register. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

@@ -22,8 +22,10 @@ export function AuthProvider({ children }) {
 
       if (error) {
         console.error("Error fetching profile:", error);
-        setUser(null);
-        return null;
+        // Fallback: keep user logged in with basic info if profile table is missing/empty
+        const fallback = { id: sessionUser.id, email: sessionUser.email, name: sessionUser.user_metadata?.name || "" };
+        setUser(fallback);
+        return fallback;
       }
 
       // Reconstruct the serialized user shape expected by the frontend

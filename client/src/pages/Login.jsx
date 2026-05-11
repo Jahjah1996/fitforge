@@ -14,13 +14,16 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     try {
-      await login(email, password);
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out. Please try again.")), 15000));
+      await Promise.race([login(email, password), timeoutPromise]);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to log in. Please check your credentials.");
+      setError(err.message || "Failed to log in. Please check your credentials.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
