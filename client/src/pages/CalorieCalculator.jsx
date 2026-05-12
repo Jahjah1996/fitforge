@@ -81,8 +81,8 @@ export default function CalorieCalculator() {
         calorie_result: calorieResult,
       });
       setSaveMessage("Saved to your profile and nutrition diary.");
-    } catch {
-      setSaveMessage("Calculated, but the profile save failed. Try again in a moment.");
+    } catch (err) {
+      setSaveMessage(`Save failed: ${err.message || "Unknown error"}. Please check database columns.`);
     } finally {
       setSaving(false);
     }

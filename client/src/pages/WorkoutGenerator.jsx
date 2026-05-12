@@ -4,10 +4,194 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
 function getExerciseType(name) {
-  const lower = name.toLowerCase();
+  const lower = String(name || "").toLowerCase();
   if (lower.includes("squat")) return "squat";
   if (lower.includes("push") || lower.includes("push-up")) return "pushup";
   return null;
+}
+
+const SVG_ALLOWED_ELEMENTS = new Set([
+  "svg",
+  "g",
+  "path",
+  "circle",
+  "rect",
+  "line",
+  "polyline",
+  "polygon",
+  "ellipse",
+]);
+
+const SVG_ALLOWED_ATTRIBUTES = new Set([
+  "viewBox",
+  "width",
+  "height",
+  "fill",
+  "stroke",
+  "strokeWidth",
+  "stroke-width",
+  "strokeLinecap",
+  "stroke-linecap",
+  "strokeLinejoin",
+  "stroke-linejoin",
+  "strokeMiterlimit",
+  "stroke-miterlimit",
+  "strokeDasharray",
+  "stroke-dasharray",
+  "strokeDashoffset",
+  "stroke-dashoffset",
+  "opacity",
+  "fillOpacity",
+  "fill-opacity",
+  "strokeOpacity",
+  "stroke-opacity",
+  "d",
+  "cx",
+  "cy",
+  "r",
+  "rx",
+  "ry",
+  "x",
+  "y",
+  "x1",
+  "y1",
+  "x2",
+  "y2",
+  "points",
+  "transform",
+]);
+
+const SVG_DANGEROUS_VALUE = /(?:javascript:|data:|vbscript:|url\s*\(|<|>)/i;
+const GENERATE_TIMEOUT_MS = 90000;
+const SAVE_TIMEOUT_MS = 15000;
+
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+async function getReadableError(err, fallback) {
+  if (err?.context) {
+    try {
+      const payload = await err.context.clone().json();
+      if (payload?.error) return payload.error;
+      if (payload?.message) return payload.message;
+    } catch {
+      try {
+        const text = await err.context.clone().text();
+        if (text) return text;
+      } catch {
+        // Use the generic message below.
+      }
+    }
+  }
+
+  return err?.message || fallback;
+}
+
+function normalizeWorkoutPlan(rawPlan) {
+  if (!Array.isArray(rawPlan)) {
+    throw new Error("Invalid workout plan format returned from AI.");
+  }
+
+  const normalized = rawPlan
+    .map((day, dayIndex) => {
+      const exercises = Array.isArray(day?.exercises)
+        ? day.exercises
+            .map((exercise) => ({
+              name: String(exercise?.name || "").trim(),
+              sets: exercise?.sets || 3,
+              reps: String(exercise?.reps || "8-12"),
+              rest_seconds: Number.isFinite(Number(exercise?.rest_seconds))
+                ? Number(exercise.rest_seconds)
+                : 60,
+              form_tip: String(exercise?.form_tip || "Move with control and keep your form steady."),
+              svg_icon: typeof exercise?.svg_icon === "string" ? exercise.svg_icon : "",
+            }))
+            .filter((exercise) => exercise.name)
+        : [];
+
+      return {
+        day: String(day?.day || `Day ${dayIndex + 1}`),
+        muscle_group: String(day?.muscle_group || day?.focus || "Training"),
+        completed: Boolean(day?.completed),
+        exercises,
+      };
+    })
+    .filter((day) => day.exercises.length > 0);
+
+  if (!normalized.length) {
+    throw new Error("The AI returned a workout without usable exercises. Please try generating again.");
+  }
+
+  return normalized;
+}
+
+function sanitizeSVG(svg) {
+  if (!svg) return "";
+
+  const parser = new DOMParser();
+  const document = parser.parseFromString(svg, "image/svg+xml");
+  const root = document.documentElement;
+
+  if (root.nodeName === "parsererror" || root.nodeName.toLowerCase() !== "svg") {
+    return "";
+  }
+
+  const sanitizeNode = (node) => {
+    if (node.nodeType !== Node.ELEMENT_NODE) return true;
+
+    const tagName = node.tagName;
+    if (!SVG_ALLOWED_ELEMENTS.has(tagName)) {
+      node.remove();
+      return false;
+    }
+
+    [...node.attributes].forEach((attribute) => {
+      const name = attribute.name;
+      const value = attribute.value.trim();
+      if (
+        name.toLowerCase().startsWith("on") ||
+        !SVG_ALLOWED_ATTRIBUTES.has(name) ||
+        SVG_DANGEROUS_VALUE.test(value)
+      ) {
+        node.removeAttribute(name);
+      }
+    });
+
+    [...node.childNodes].forEach(sanitizeNode);
+    return true;
+  };
+
+  sanitizeNode(root);
+  root.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  root.setAttribute("aria-hidden", "true");
+  root.setAttribute("focusable", "false");
+
+  return new XMLSerializer().serializeToString(root);
+}
+
+function ExerciseIcon({ svg, className, fallbackClassName = "text-[#EF4444]" }) {
+  const safeSvg = sanitizeSVG(svg);
+
+  if (safeSvg) {
+    return (
+      <div
+        className={className}
+        dangerouslySetInnerHTML={{ __html: safeSvg }}
+      />
+    );
+  }
+
+  return (
+    <span className={`material-symbols-outlined ${fallbackClassName}`}>
+      fitness_center
+    </span>
+  );
 }
 
 const DEFAULT_WORKOUT_FORM = {
@@ -54,15 +238,20 @@ function getSavedWorkoutForm(user) {
 }
 
 function getSavedWorkoutPlan(user) {
-  return Array.isArray(user?.saved_workout_plan) && user.saved_workout_plan.length
-    ? user.saved_workout_plan
-    : null;
+  try {
+    return Array.isArray(user?.saved_workout_plan) && user.saved_workout_plan.length
+      ? normalizeWorkoutPlan(user.saved_workout_plan)
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function WorkoutGenerator() {
   const { user, updateProfile } = useAuth();
   const [form, setForm] = useState(() => getSavedWorkoutForm(user));
   const [plan, setPlan] = useState(() => getSavedWorkoutPlan(user));
+  const [showForm, setShowForm] = useState(() => !getSavedWorkoutPlan(user));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeDay, setActiveDay] = useState(null);
@@ -92,32 +281,44 @@ export default function WorkoutGenerator() {
           body: form
         });
         if (aiError) throw aiError;
-        if (!Array.isArray(newPlan)) throw new Error("Invalid workout plan format returned from AI.");
-        return newPlan;
+        return normalizeWorkoutPlan(newPlan);
       };
 
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 60s. Please try again.")), 60000));
-      const newPlan = await Promise.race([generatePromise(), timeoutPromise]);
+      const newPlan = await withTimeout(
+        generatePromise(),
+        GENERATE_TIMEOUT_MS,
+        "Workout generation timed out. Please try again with fewer days or shorter notes."
+      );
       
       setPlan(newPlan);
+      setShowForm(false);
       
       // Save it to the user's profile with a separate shorter timeout
-      const savePromise = updateProfile({
-        workout_profile: form,
-        saved_workout_plan: newPlan
-      });
-      const saveTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Plan generated, but saving to profile timed out.")), 10000));
-      await Promise.race([savePromise, saveTimeout]);
+      await withTimeout(
+        updateProfile({
+          workout_profile: form,
+          saved_workout_plan: newPlan
+        }),
+        SAVE_TIMEOUT_MS,
+        "Plan generated, but saving to your profile timed out."
+      );
 
     } catch (err) {
       console.error("AI Generation error:", err);
-      setError(err.message || "Failed to generate plan. Please try again.");
+      const errorMsg = await getReadableError(err, "Failed to generate plan. Please try again.");
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const startWorkout = (day) => { setActiveDay(day); setCurrentExerciseIndex(0); window.scrollTo(0, 0); };
   const nextExercise = async () => {
+    if (!activeDay?.exercises?.length) {
+      setActiveDay(null);
+      return;
+    }
+
     if (currentExerciseIndex < activeDay.exercises.length - 1) {
       setCurrentExerciseIndex(p => p + 1);
     } else {
@@ -136,7 +337,20 @@ export default function WorkoutGenerator() {
 
   // ── Active workout ───────────────────────────────────────────────────────────
   if (activeDay) {
-    const ex = activeDay.exercises[currentExerciseIndex];
+    const ex = activeDay.exercises?.[currentExerciseIndex];
+    if (!ex) {
+      return (
+        <div className="max-w-2xl mx-auto px-4 pb-16">
+          <div className="bg-white rounded-3xl border border-gray-100 p-8 text-center">
+            <h1 className="font-black text-2xl text-[#111] mb-2">Workout unavailable</h1>
+            <p className="text-gray-500 font-medium mb-6">This workout day did not include any usable exercises.</p>
+            <button onClick={() => setActiveDay(null)} className="btn-brand justify-center">
+              Back to plan
+            </button>
+          </div>
+        </div>
+      );
+    }
     const aiType = getExerciseType(ex.name);
 
     return (
@@ -167,6 +381,15 @@ export default function WorkoutGenerator() {
           </div>
 
           <h1 className="font-black text-3xl text-[#111] mb-6">{ex.name}</h1>
+
+          <div className="w-32 h-32 mx-auto mb-8 bg-[#F7F9FC] rounded-3xl p-4 flex items-center justify-center">
+            <ExerciseIcon
+              svg={ex.svg_icon}
+              className="svg-container w-full h-full flex items-center justify-center"
+              fallbackClassName="text-[#EF4444] text-5xl"
+            />
+          </div>
+
 
 
           <div className="flex justify-center gap-4 mb-6">
@@ -212,12 +435,23 @@ export default function WorkoutGenerator() {
   return (
     <div className="max-w-4xl mx-auto px-4 pb-16">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-black text-4xl text-[#111] mb-1">AI Workout Planner</h1>
-        <p className="text-gray-500 font-medium">Get a personalized routine built by Gemini AI.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="font-black text-4xl text-[#111] mb-1">AI Workout Planner</h1>
+          <p className="text-gray-500 font-medium">Get a personalized routine built by Gemini AI.</p>
+        </div>
+        {!showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="btn-dark text-sm px-6 py-2.5 whitespace-nowrap"
+          >
+            <span className="material-symbols-outlined text-base">add</span> New Plan
+          </button>
+        )}
       </div>
 
       {/* Config card */}
+      {showForm && (
       <div className="bg-white rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.07)] border border-gray-100 p-5 md:p-8 mb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
           {[
@@ -357,18 +591,30 @@ export default function WorkoutGenerator() {
           </div>
         )}
 
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="btn-brand w-full justify-center text-base disabled:opacity-60"
-        >
-          {loading ? (
-            <><span className="animate-spin material-symbols-outlined text-base">autorenew</span> Forging your plan...</>
-          ) : (
-            "Generate my plan →"
+        <div className="flex gap-3">
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="btn-brand flex-1 justify-center text-base disabled:opacity-60"
+          >
+            {loading ? (
+              <><span className="animate-spin material-symbols-outlined text-base">autorenew</span> Forging your plan...</>
+            ) : (
+              "Generate my plan →"
+            )}
+          </button>
+          {plan && (
+            <button
+              onClick={() => setShowForm(false)}
+              disabled={loading}
+              className="bg-gray-100 text-gray-600 font-bold rounded-full px-6 py-3 hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
           )}
-        </button>
+        </div>
       </div>
+      )}
 
       {/* Plan */}
       {plan && (
@@ -419,8 +665,11 @@ export default function WorkoutGenerator() {
                     return (
                       <div key={j} className="flex items-center justify-between bg-[#F7F9FC] rounded-2xl p-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-[#FEF2F2] flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined text-[#EF4444]">fitness_center</span>
+                          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-[#FEF2F2] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            <ExerciseIcon
+                              svg={ex.svg_icon}
+                              className="svg-container w-full h-full p-2 flex items-center justify-center"
+                            />
                           </div>
                           <div>
                             <div className="flex items-center gap-2 mb-0.5">

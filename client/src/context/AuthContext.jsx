@@ -127,8 +127,11 @@ export function AuthProvider({ children }) {
     if (Object.keys(data).length > 0) {
       const { error } = await supabase
         .from("profiles")
-        .update(data)
-        .eq("id", session.user.id);
+        .upsert({ 
+          id: session.user.id, 
+          name: user?.name || session.user.user_metadata?.name || "Athlete",
+          ...data 
+        });
       
       if (error) throw error;
     }

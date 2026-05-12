@@ -1,7 +1,7 @@
 // Deno imports
 import { GoogleGenerativeAI } from "npm:@google/generative-ai";
 
-const MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-1.5-flash-latest";
+const MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
 
 export function getGenAI() {
   const apiKey = Deno.env.get("GEMINI_API_KEY");

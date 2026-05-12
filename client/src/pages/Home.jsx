@@ -247,10 +247,10 @@ export default function Home() {
                 Receive real-time feedback on your posture and range of motion to
                 maximize gains and prevent injury.
               </p>
-              <button className="inline-flex items-center gap-2 text-[#EF4444] font-bold text-sm hover:opacity-75 transition-opacity w-fit">
+              <Link to="/vision" className="inline-flex items-center gap-2 text-[#EF4444] font-bold text-sm hover:opacity-75 transition-opacity w-fit">
                 See how it works
                 <span className="material-symbols-outlined text-base">arrow_forward</span>
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -304,7 +304,7 @@ export default function Home() {
             Start your journey today.
           </h2>
           <p className="text-gray-500 text-lg font-medium mb-10">
-            Join 10,000+ athletes already forging their future with FitForge.
+            Join early adopters building smarter, stronger routines with FitForge.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to={user ? "/workout" : "/register"} className="btn-brand text-base justify-center">
@@ -320,7 +320,7 @@ export default function Home() {
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer className="border-t border-gray-100 py-8 px-4 text-center text-gray-400 text-sm font-medium">
-        © 2025 FitForge. Built with Google Gemini AI.
+        © 2026 FitForge. Built with Google Gemini AI.
       </footer>
     </div>
   );

@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-flash-latest";
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 function normalizePreferences(body: any) {
@@ -23,9 +23,31 @@ function normalizePreferences(body: any) {
 
 function extractJSON(text: string): any {
   const cleaned = text.replace(/```json|```/g, "").trim();
-  const match = cleaned.match(/(\[[\s\S]*\])/);
-  if (!match) throw new Error("No JSON array found in Gemini response");
-  return JSON.parse(match[1]);
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.plan)) return parsed.plan;
+    if (Array.isArray(parsed?.workout_plan)) return parsed.workout_plan;
+    if (Array.isArray(parsed?.days)) return parsed.days;
+    if (parsed?.day && parsed?.exercises) return [parsed];
+  } catch {
+    // Fall back to extracting JSON from a response that included prose.
+  }
+
+  const arrayMatch = cleaned.match(/(\[[\s\S]*\])/);
+  if (arrayMatch) return JSON.parse(arrayMatch[1]);
+
+  const objectMatch = cleaned.match(/(\{[\s\S]*\})/);
+  if (objectMatch) {
+    const parsed = JSON.parse(objectMatch[1]);
+    if (Array.isArray(parsed?.plan)) return parsed.plan;
+    if (Array.isArray(parsed?.workout_plan)) return parsed.workout_plan;
+    if (Array.isArray(parsed?.days)) return parsed.days;
+    if (parsed?.day && parsed?.exercises) return [parsed];
+  }
+
+  throw new Error("No complete workout JSON found in Gemini response");
 }
 
 serve(async (req) => {
@@ -59,8 +81,9 @@ Rules:
 - Tailor every exercise to the equipment and location
 - Keep rest periods and sets realistic for the session length
 - Include a brief form tip per exercise
+- Return 4 to 6 exercises per workout day
 
-Return ONLY a raw JSON array, no markdown, no prose. Exact format:
+Return ONLY a raw JSON array as the top-level value, no object wrapper, no markdown, no prose. Exact format:
 [{"day":"Monday","muscle_group":"Chest & Triceps","exercises":[{"name":"Push-ups","sets":3,"reps":"12","rest_seconds":60,"form_tip":"Keep core tight."}]}]`;
 
     console.log("[generate-workout] Calling Gemini REST API, model:", GEMINI_MODEL);
@@ -70,7 +93,7 @@ Return ONLY a raw JSON array, no markdown, no prose. Exact format:
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 8192, responseMimeType: "application/json" },
       }),
     });
 

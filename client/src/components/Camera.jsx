@@ -21,7 +21,7 @@ export default function Camera({ exercise = "squat" }) {
     <div className="relative w-full max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Form Tracker</h2>
-        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold uppercase text-sm">
+        <div className="bg-[#FEF2F2] text-[#EF4444] px-3 py-1 rounded-full font-bold uppercase text-sm">
           Tracking: {exercise}
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function Camera({ exercise = "squat" }) {
       </div>
 
       <div className="flex gap-4 mt-6">
-        <div className="bg-blue-600 text-white rounded-xl p-5 text-center flex-1 shadow-md">
+        <div className="bg-[#EF4444] text-white rounded-xl p-5 text-center flex-1 shadow-md">
           <p className="text-5xl font-extrabold mb-1">{reps}</p>
           <p className="text-sm font-medium uppercase tracking-wider opacity-80">Reps Counted</p>
         </div>
@@ -90,8 +90,8 @@ export default function Camera({ exercise = "squat" }) {
         onClick={() => setActive(!active)}
         className={`mt-6 w-full py-4 rounded-xl font-bold text-lg transition-all shadow-md ${
           active 
-            ? "bg-red-500 hover:bg-red-600 text-white" 
-            : "bg-green-500 hover:bg-green-600 text-white"
+            ? "bg-white text-[#EF4444] border border-[#EF4444] hover:bg-[#FEF2F2]" 
+            : "btn-brand flex justify-center items-center"
         }`}
       >
         {active ? "Stop Tracking" : "Start Camera & Track Reps"}

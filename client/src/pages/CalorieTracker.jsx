@@ -21,6 +21,60 @@ function MacroBar({ label, value, target, color, unit = "g" }) {
   );
 }
 
+const ANALYZE_TIMEOUT_MS = 45000;
+const SAVE_TIMEOUT_MS = 15000;
+
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+async function getReadableError(err, fallback) {
+  if (err?.context) {
+    try {
+      const payload = await err.context.clone().json();
+      if (payload?.error) return payload.error;
+      if (payload?.message) return payload.message;
+    } catch {
+      try {
+        const text = await err.context.clone().text();
+        if (text) return text;
+      } catch {
+        // Fall through to the generic error handling below.
+      }
+    }
+  }
+
+  return err?.message || fallback;
+}
+
+function normalizeNutrition(nutrition, fallbackName) {
+  const normalized = {
+    food_name: nutrition?.food_name || fallbackName,
+    calories: Math.round(Number(nutrition?.calories)),
+    protein_g: Number(nutrition?.protein_g),
+    carbs_g: Number(nutrition?.carbs_g),
+    fat_g: Number(nutrition?.fat_g),
+  };
+
+  const hasInvalidValue = [
+    normalized.calories,
+    normalized.protein_g,
+    normalized.carbs_g,
+    normalized.fat_g,
+  ].some((value) => !Number.isFinite(value));
+
+  if (hasInvalidValue) {
+    throw new Error("The AI returned incomplete nutrition data. Please try a more specific food description.");
+  }
+
+  return normalized;
+}
+
 export default function CalorieTracker() {
   const [input, setInput] = useState("");
   const [log, setLog] = useState([]);
@@ -67,33 +121,46 @@ export default function CalorieTracker() {
 
   const handleAdd = async () => {
     if (!input.trim() || !user) return;
+    const foodDescription = input.trim();
+
     setLoading(true); setError(null);
     try {
-      const { data: nutrition, error: aiError } = await supabase.functions.invoke('estimate-calories', {
-        body: { foodDescription: input }
-      });
+      const { data: nutrition, error: aiError } = await withTimeout(
+        supabase.functions.invoke('estimate-calories', {
+          body: { foodDescription }
+        }),
+        ANALYZE_TIMEOUT_MS,
+        "Food analysis timed out. Please try again with a shorter description."
+      );
       
       if (aiError) throw aiError;
+      const normalizedNutrition = normalizeNutrition(nutrition, foodDescription);
 
-      const { data: newLog, error: dbError } = await supabase.from('food_logs').insert({
-        user_id: user.id,
-        food_name: nutrition.food_name || input,
-        calories: nutrition.calories,
-        protein_g: nutrition.protein_g,
-        carbs_g: nutrition.carbs_g,
-        fat_g: nutrition.fat_g
-      }).select().single();
+      const { data: newLog, error: dbError } = await withTimeout(
+        supabase.from('food_logs').insert({
+          user_id: user.id,
+          food_name: normalizedNutrition.food_name,
+          calories: normalizedNutrition.calories,
+          protein_g: normalizedNutrition.protein_g,
+          carbs_g: normalizedNutrition.carbs_g,
+          fat_g: normalizedNutrition.fat_g
+        }).select().single(),
+        SAVE_TIMEOUT_MS,
+        "Food analysis finished, but saving the log timed out. Please refresh and check today's log before retrying."
+      );
 
       if (dbError) throw dbError;
 
       setLog([...log, newLog]);
       setInput("");
     } catch (err) {
-      setError(err?.message?.includes("429")
+      const message = await getReadableError(err, "Failed to analyze food. Please try again.");
+      setError(message.includes("429")
         ? "AI rate limit reached. Try again in a moment."
-        : "Failed to analyze food. Please try again.");
+        : message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDelete = async (id) => {

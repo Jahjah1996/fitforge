@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 export default function Register() {
@@ -9,8 +9,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
   const { register } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +23,7 @@ export default function Register() {
       });
       await Promise.race([register(name, email, password), timeoutPromise]);
       clearTimeout(timeoutId);
-      navigate("/");
+      setSuccessMsg("Account created! Check your email to confirm your account before signing in.");
     } catch (err) {
       console.error("Registration error:", err);
       setError(err.message || "Failed to register. Please try again.");
@@ -49,6 +49,14 @@ export default function Register() {
             </div>
           )}
 
+          {successMsg && (
+            <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-2xl mb-6 text-sm font-semibold flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-black">✓</span>
+              {successMsg}
+            </div>
+          )}
+
+          {!successMsg && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-[#111] text-sm font-bold mb-2">Your name</label>
@@ -81,6 +89,7 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={8}
               />
             </div>
             <button
@@ -91,6 +100,7 @@ export default function Register() {
               {loading ? "Creating account..." : "Get started free →"}
             </button>
           </form>
+          )}
 
           <p className="text-center text-gray-500 text-sm font-medium mt-6">
             Already have an account?{" "}
