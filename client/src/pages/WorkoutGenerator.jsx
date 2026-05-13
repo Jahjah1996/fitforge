@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Camera from "../components/Camera";
+import { SetupFlowProgress } from "../components/SetupFlowProgress";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
@@ -249,6 +251,10 @@ function getSavedWorkoutPlan(user) {
 
 export default function WorkoutGenerator() {
   const { user, updateProfile } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const setupMode = searchParams.get("setup") === "1";
+
   const [form, setForm] = useState(() => getSavedWorkoutForm(user));
   const [plan, setPlan] = useState(() => getSavedWorkoutPlan(user));
   const [showForm, setShowForm] = useState(() => !getSavedWorkoutPlan(user));
@@ -256,6 +262,8 @@ export default function WorkoutGenerator() {
   const [error, setError] = useState(null);
   const [activeDay, setActiveDay] = useState(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [setupCelebrate, setSetupCelebrate] = useState(false);
+  const [setupPlanGeneratedSession, setSetupPlanGeneratedSession] = useState(false);
 
   const toggleFocusArea = (area) => {
     setForm((current) => {
@@ -302,6 +310,11 @@ export default function WorkoutGenerator() {
         SAVE_TIMEOUT_MS,
         "Plan generated, but saving to your profile timed out."
       );
+
+      if (setupMode) {
+        setSetupPlanGeneratedSession(true);
+        setSetupCelebrate(true);
+      }
 
     } catch (err) {
       console.error("AI Generation error:", err);
@@ -433,12 +446,77 @@ export default function WorkoutGenerator() {
 
   // ── Generator ────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-4xl mx-auto px-4 pb-16">
+    <div className="max-w-4xl mx-auto px-4 pb-16 relative">
+      {setupCelebrate && setupMode && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#0f172a]/45 px-4 py-10 backdrop-blur-sm ff-setup-overlay-enter"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="setup-celebrate-title"
+        >
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+            {[
+              "left-[8%] top-[18%] h-3 w-3 rounded-full bg-[#EF4444]",
+              "left-[18%] top-[62%] h-2 w-2 rounded-full bg-[#6EB5FF]",
+              "right-[12%] top-[22%] h-2.5 w-2.5 rounded-full bg-[#FFD95A]",
+              "right-[22%] bottom-[28%] h-3 w-3 rounded-full bg-[#EF4444]/80",
+              "left-[42%] top-[12%] h-2 w-2 rounded-full bg-white/80",
+            ].map((cls, i) => (
+              <div key={i} className={`absolute ff-confetti-bit ${cls}`} style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </div>
+
+          <div className="relative z-10 w-full max-w-lg rounded-[28px] border border-white/20 bg-white p-8 sm:p-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.25)] ff-celebrate-card">
+            <div className="mb-6 flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FEF2F2] ring-8 ring-[#EF4444]/10">
+                <span className="material-symbols-outlined text-4xl text-[#EF4444] fill">celebration</span>
+              </div>
+            </div>
+            <SetupFlowProgress activeStep={3} />
+            <h2 id="setup-celebrate-title" className="font-['Plus_Jakarta_Sans'] font-black text-3xl text-[#111] tracking-tight">
+              You&apos;re all set
+            </h2>
+            <p className="mt-3 text-gray-500 font-medium leading-relaxed">
+              Your calorie targets are saved and your AI plan is ready. You&apos;re on the training page — start a day whenever you&apos;re ready, or explore nutrition from the menu.
+            </p>
+            <button
+              type="button"
+              className="btn-brand mt-8 w-full justify-center text-base sm:w-auto sm:px-12"
+              onClick={() => navigate("/workout", { replace: true })}
+            >
+              Go to training
+              <span className="material-symbols-outlined text-base">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
+        <div className="w-full">
+          {setupMode && !setupCelebrate && (
+            <>
+              <SetupFlowProgress activeStep={2} />
+              {plan && !showForm && !setupPlanGeneratedSession && (
+                <div className="mb-4 rounded-2xl border border-[#6EB5FF]/30 bg-[#EFF6FF] px-4 py-3 text-sm font-semibold text-[#111] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <span>Already have a saved plan — finish setup anytime.</span>
+                  <button
+                    type="button"
+                    onClick={() => setSetupCelebrate(true)}
+                    className="btn-brand shrink-0 justify-center text-sm py-2.5 px-5"
+                  >
+                    You&apos;re all set
+                  </button>
+                </div>
+              )}
+            </>
+          )}
           <h1 className="font-black text-4xl text-[#111] mb-1">AI Workout Planner</h1>
-          <p className="text-gray-500 font-medium">Get a personalized routine built by Gemini AI.</p>
+          <p className="text-gray-500 font-medium">
+            {setupMode && !setupCelebrate
+              ? "Step 2 of 2 — generate a plan tailored to you."
+              : "Get a personalized routine built by Gemini AI."}
+          </p>
         </div>
         {!showForm && (
           <button

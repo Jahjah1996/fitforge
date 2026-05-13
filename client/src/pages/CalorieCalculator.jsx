@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useAuth } from "../context/AuthContext";
+import { SetupFlowProgress, SetupTransitionOverlay } from "../components/SetupFlowProgress";
 import {
   calculateBMR,
   calculateTDEE,
@@ -35,13 +37,34 @@ function getSavedCalculatorForm(user) {
     : { ...DEFAULT_FORM };
 }
 
+/** True only after a real calculator save — not a bare DB default on `daily_calorie_target`. */
+function userHasPersistedCalculatorRun(user) {
+  if (!user) return false;
+  const lr = user.last_calorie_result;
+  if (lr && Number.isFinite(Number(lr.bmr)) && Number.isFinite(Number(lr.tdee))) return true;
+  const cp = user.calculator_profile;
+  if (cp && typeof cp === "object") {
+    const hasAnyInput = ["age", "weight", "height", "weight_lb"].some((k) => {
+      const v = cp[k];
+      return v !== undefined && v !== null && String(v).trim() !== "";
+    });
+    if (hasAnyInput) return true;
+  }
+  return false;
+}
+
 export default function CalorieCalculator() {
   const { user, updateProfile } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const setupMode = searchParams.get("setup") === "1";
+
   const [form, setForm] = useState(() => getSavedCalculatorForm(user));
   const [result, setResult] = useState(() => user?.last_calorie_result || null);
   const [error, setError] = useState(null);
   const [saveMessage, setSaveMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [setupLeaving, setSetupLeaving] = useState(false);
 
   const calculate = async () => {
     const age = parseFloat(form.age);
@@ -80,7 +103,11 @@ export default function CalorieCalculator() {
         calculator_profile: form,
         calorie_result: calorieResult,
       });
-      setSaveMessage("Saved to your profile and nutrition diary.");
+      setSaveMessage(
+        setupMode
+          ? "Target saved. Next up: your workout plan."
+          : "Saved to your profile and nutrition diary."
+      );
     } catch (err) {
       setSaveMessage(`Save failed: ${err.message || "Unknown error"}. Please check database columns.`);
     } finally {
@@ -88,13 +115,54 @@ export default function CalorieCalculator() {
     }
   };
 
+  const goToWorkoutSetup = () => {
+    setSetupLeaving(true);
+    window.setTimeout(() => {
+      navigate("/workout?setup=1", { replace: true });
+    }, 520);
+  };
+
+  const saveOk =
+    saveMessage.startsWith("Target saved") ||
+    saveMessage.startsWith("Saved to your profile");
+
+  const showSetupContinue =
+    setupMode &&
+    result &&
+    user &&
+    !saving &&
+    (saveOk || (userHasPersistedCalculatorRun(user) && !saveMessage.includes("Save failed")));
+
+  const showSkipIfAlreadyHasTarget =
+    setupMode &&
+    user &&
+    userHasPersistedCalculatorRun(user) &&
+    !result;
+
   return (
-    <div className="max-w-3xl mx-auto px-4 pb-16">
+    <div className="max-w-3xl mx-auto px-4 pb-16 relative">
+      {setupLeaving && <SetupTransitionOverlay message="Opening your workout planner" />}
+
       {/* Header */}
       <div className="mb-8">
+        {setupMode && <SetupFlowProgress activeStep={1} />}
         <h1 className="font-['Plus_Jakarta_Sans'] font-black text-4xl text-[#111] mb-1">Calorie Calculator</h1>
-        <p className="text-gray-500 font-medium">Formula-based daily targets in seconds.</p>
+        <p className="text-gray-500 font-medium">
+          {setupMode
+            ? "Step 1 of 2 — lock in your daily calories and macros."
+            : "Formula-based daily targets in seconds."}
+        </p>
       </div>
+
+      {showSkipIfAlreadyHasTarget && (
+        <div className="mb-6 rounded-3xl border border-[#EF4444]/20 bg-[#FEF2F2] px-5 py-4 text-sm font-semibold text-[#111]">
+          <p className="mb-3">You already have a saved calorie target. Continue to build your AI workout plan.</p>
+          <button type="button" onClick={goToWorkoutSetup} className="btn-brand text-sm py-3 px-6">
+            Continue to workout planner
+            <span className="material-symbols-outlined text-base">arrow_forward</span>
+          </button>
+        </div>
+      )}
 
       {/* Unit toggle */}
       <div className="flex justify-center mb-8">
@@ -289,6 +357,26 @@ export default function CalorieCalculator() {
               </div>
             </div>
           </div>
+
+          {showSetupContinue && (
+            <div className="rounded-3xl border border-gray-100 bg-gradient-to-br from-white to-[#F7F9FC] p-6 sm:p-8 shadow-[0_8px_40px_rgba(239,68,68,0.12)]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-[#EF4444] mb-1">Next step</p>
+                  <p className="font-['Plus_Jakarta_Sans'] font-black text-2xl text-[#111] leading-tight">
+                    Forge your AI workout plan
+                  </p>
+                  <p className="text-gray-500 font-medium text-sm mt-1 max-w-md">
+                    We will tailor sessions to your goal, schedule, and equipment.
+                  </p>
+                </div>
+                <button type="button" onClick={goToWorkoutSetup} className="btn-brand shrink-0 justify-center text-base px-8">
+                  Continue
+                  <span className="material-symbols-outlined text-base">fitness_center</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -22,7 +22,7 @@ export default function Login() {
       });
       await Promise.race([login(email, password), timeoutPromise]);
       clearTimeout(timeoutId);
-      navigate("/");
+      navigate("/workout", { replace: true });
     } catch (err) {
       setError(err.message || "Failed to log in. Please check your credentials.");
     } finally {
@@ -31,10 +31,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[80vh] bg-[#F7F9FC] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[100dvh] bg-[#F7F9FC] flex items-center justify-center px-4 py-8 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="bg-white rounded-[28px] shadow-[0_4px_40px_rgba(0,0,0,0.08)] p-6 sm:p-10">
+        <div className="bg-white rounded-[28px] shadow-[0_4px_40px_rgba(0,0,0,0.08)] p-5 sm:p-10">
           <div className="text-center mb-8">
             <img src={logo} alt="FitForge Logo" className="h-16 w-auto mx-auto mb-4" />
             <h1 className="font-extrabold text-[28px] text-[#111] mb-2">Welcome back</h1>
@@ -53,7 +53,7 @@ export default function Login() {
               <label className="block text-[#111] text-sm font-bold mb-2">Email</label>
               <input
                 type="email"
-                className="w-full bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3.5 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-sm font-medium"
+                className="w-full min-h-[48px] bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-base sm:text-sm font-medium"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -64,7 +64,7 @@ export default function Login() {
               <label className="block text-[#111] text-sm font-bold mb-2">Password</label>
               <input
                 type="password"
-                className="w-full bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3.5 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-sm font-medium"
+                className="w-full min-h-[48px] bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-base sm:text-sm font-medium"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -74,7 +74,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-brand w-full justify-center text-base mt-2"
+              className="btn-brand w-full justify-center text-base mt-2 min-h-[48px]"
             >
               {loading ? "Signing in..." : "Sign in →"}
             </button>
@@ -82,7 +82,7 @@ export default function Login() {
 
           <p className="text-center text-gray-500 text-sm font-medium mt-6">
             Don't have an account?{" "}
-            <Link to="/register" className="text-[#EF4444] font-bold hover:underline">
+            <Link to="/register" className="cursor-pointer text-[#EF4444] font-bold hover:underline">
               Get started free
             </Link>
           </p>

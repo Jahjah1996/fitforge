@@ -37,8 +37,9 @@ export default function Navbar() {
                   Nutrition
                 </Link>
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="text-gray-500 hover:text-brand font-semibold text-sm px-4 py-2 rounded-pill transition-colors ml-2"
+                  className="cursor-pointer text-gray-500 hover:text-brand font-semibold text-sm px-4 py-2 rounded-pill transition-colors ml-2"
                 >
                   Sign out
                 </button>
@@ -47,7 +48,7 @@ export default function Navbar() {
               <>
                 <Link
                   to="/login"
-                  className="text-gray-600 hover:text-gray-900 font-semibold text-sm px-4 py-2 rounded-pill transition-colors"
+                  className="cursor-pointer text-gray-600 hover:text-gray-900 font-semibold text-sm px-4 py-2 rounded-pill transition-colors"
                 >
                   Log in
                 </Link>

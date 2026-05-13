@@ -8,41 +8,58 @@ export default function Home() {
     <div className="bg-white overflow-x-hidden">
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="bg-[#F7F9FC] pt-8 pb-0">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-12 pb-0 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <section className="bg-[#F7F9FC] pt-4 pb-0 sm:pt-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 sm:pt-12 pb-0 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* Left: copy */}
-          <div className="space-y-7 z-10 pb-12 lg:pb-24">
-            <div className="inline-flex items-center gap-2 bg-white text-[#EF4444] font-semibold text-sm px-4 py-2 rounded-full shadow-sm border border-[#FECACA]">
-              <span className="w-2 h-2 rounded-full bg-[#EF4444] inline-block animate-pulse" />
-              AI-Powered Fitness & Nutrition
+          <div className="space-y-5 sm:space-y-7 z-10 pb-8 lg:pb-24">
+            <div className="inline-flex items-center gap-2 bg-white text-[#EF4444] font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full shadow-sm border border-[#FECACA] max-w-full">
+              <span className="w-2 h-2 rounded-full bg-[#EF4444] inline-block animate-pulse shrink-0" />
+              <span className="leading-snug">AI-Powered Fitness & Nutrition</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-[#111] leading-[1.07] tracking-tight">
+            <h1 className="text-[1.65rem] leading-[1.12] tracking-tight sm:text-4xl md:text-5xl lg:text-[56px] font-black text-[#111] sm:leading-[1.07]">
               Forge Your Best Self with{" "}
               <span className="text-[#EF4444]">AI-Driven</span> Wellness
             </h1>
 
-            <p className="text-gray-500 text-lg leading-relaxed max-w-lg font-medium">
+            <p className="text-gray-500 text-base sm:text-lg leading-relaxed max-w-lg font-medium">
               Experience the future of fitness. Our advanced AI analyzes your unique
               biomechanics and metabolic data to craft premium nutrition plans and
               precision workout routines, guiding you to unparalleled results.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:pt-2">
               <Link
                 to={user ? "/workout" : "/register"}
-                className="btn-brand text-base justify-center"
+                className="btn-brand text-base justify-center min-h-[48px] w-full sm:w-auto"
               >
                 <span className="material-symbols-outlined text-base">arrow_forward</span>
                 {user ? "Go to Dashboard" : "Start Your Journey"}
               </Link>
               <Link
                 to={user ? "/calculator" : "/login"}
-                className="btn-dark text-base justify-center"
+                className="btn-dark text-base justify-center min-h-[48px] w-full sm:w-auto"
               >
                 {user ? "Open Calculator" : "Explore Features"}
               </Link>
+            </div>
+
+            {/* Mobile / tablet hero visual (desktop uses column image) */}
+            <div className="lg:hidden mt-2">
+              <div className="relative overflow-hidden rounded-[22px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.06]">
+                <img
+                  src="/hero.png"
+                  alt="Athlete training in a modern gym"
+                  className="w-full h-[200px] sm:h-[260px] object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent pt-16 pb-3 px-4">
+                  <p className="text-white/90 text-xs font-semibold">
+                    AI plans + nutrition — built for real training.
+                  </p>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -88,12 +105,12 @@ export default function Home() {
       </section>
 
       {/* ── Bento Feature Grid ───────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-20 lg:py-32">
-        <div className="text-center max-w-2xl mx-auto mb-14 lg:mb-20">
-          <h2 className="font-black text-3xl md:text-4xl lg:text-5xl text-[#111] mb-4">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-14 sm:py-20 lg:py-32">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14 lg:mb-20 px-1">
+          <h2 className="font-black text-[1.6rem] leading-tight sm:text-3xl md:text-4xl lg:text-5xl text-[#111] mb-3 sm:mb-4">
             Precision engineering<br />for your body
           </h2>
-          <p className="text-gray-500 text-lg font-medium leading-relaxed">
+          <p className="text-gray-500 text-base sm:text-lg font-medium leading-relaxed">
             Our modular ecosystem adapts to your lifestyle, delivering actionable
             insights when you need them most.
           </p>
@@ -118,7 +135,7 @@ export default function Home() {
               <p className="text-xs text-gray-400 italic font-medium leading-relaxed">
                 "I had a grilled chicken salad with avocado and balsamic dressing."
               </p>
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex flex-wrap items-center gap-2 mt-3">
                 <span className="text-xs font-bold text-[#EF4444] bg-[#FEF2F2] px-2 py-1 rounded-full">P 38g</span>
                 <span className="text-xs font-bold text-[#6EB5FF] bg-[#EFF6FF] px-2 py-1 rounded-full">C 22g</span>
                 <span className="text-xs font-bold text-[#F59E0B] bg-[#FFFBEB] px-2 py-1 rounded-full">F 18g</span>
@@ -145,7 +162,7 @@ export default function Home() {
               </p>
               <Link
                 to={user ? "/workout" : "/register"}
-                className="mt-8 inline-flex items-center gap-2 bg-white text-[#EF4444] font-bold text-sm px-6 py-3 rounded-full w-fit hover:bg-[#FEF2F2] transition-colors"
+                className="mt-6 sm:mt-8 inline-flex min-h-[48px] items-center justify-center gap-2 bg-white text-[#EF4444] font-bold text-sm px-6 py-3 rounded-full w-full sm:w-fit hover:bg-[#FEF2F2] transition-colors cursor-pointer"
               >
                 Generate my plan
                 <span className="material-symbols-outlined text-base">arrow_forward</span>
@@ -199,7 +216,7 @@ export default function Home() {
             </div>
             <Link
               to={user ? "/calculator" : "/register"}
-              className="mt-5 inline-flex items-center gap-1.5 text-[#EF4444] font-bold text-sm hover:opacity-75 transition-opacity"
+              className="mt-5 inline-flex min-h-[44px] items-center gap-1.5 text-[#EF4444] font-bold text-sm hover:opacity-75 transition-opacity cursor-pointer"
             >
               Calculate mine
               <span className="material-symbols-outlined text-base">arrow_forward</span>
@@ -235,7 +252,7 @@ export default function Home() {
             </div>
 
             {/* Text side */}
-            <div className="flex-1 p-8 flex flex-col justify-center">
+            <div className="flex-1 p-6 sm:p-8 flex flex-col justify-center">
               <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] flex items-center justify-center mb-5 flex-shrink-0">
                 <span className="material-symbols-outlined text-[#EF4444] text-2xl">videocam</span>
               </div>
@@ -247,7 +264,7 @@ export default function Home() {
                 Receive real-time feedback on your posture and range of motion to
                 maximize gains and prevent injury.
               </p>
-              <Link to="/vision" className="inline-flex items-center gap-2 text-[#EF4444] font-bold text-sm hover:opacity-75 transition-opacity w-fit">
+              <Link to="/vision" className="inline-flex min-h-[44px] items-center gap-2 text-[#EF4444] font-bold text-sm hover:opacity-75 transition-opacity w-fit cursor-pointer">
                 See how it works
                 <span className="material-symbols-outlined text-base">arrow_forward</span>
               </Link>
@@ -276,7 +293,7 @@ export default function Home() {
             ].map((row, i, arr) => (
               <div
                 key={i}
-                className={`flex items-start gap-4 px-6 py-5 ${
+                className={`flex items-start gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-5 ${
                   i < arr.length - 1 ? "border-b border-gray-100" : ""
                 }`}
               >
@@ -294,24 +311,24 @@ export default function Home() {
       </section>
 
       {/* ── Final CTA ────────────────────────────────────────────────── */}
-      <section className="py-20 lg:py-28 px-4 md:px-8 text-center bg-white">
-        <div className="max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-[#FEF2F2] text-[#EF4444] font-semibold text-sm px-4 py-2 rounded-full mb-7">
+      <section className="py-14 sm:py-20 lg:py-28 px-4 md:px-8 text-center bg-white">
+        <div className="max-w-3xl mx-auto px-1">
+          <div className="inline-flex items-center gap-2 bg-[#FEF2F2] text-[#EF4444] font-semibold text-xs sm:text-sm px-4 py-2 rounded-full mb-5 sm:mb-7">
             <span className="w-2 h-2 rounded-full bg-[#EF4444] inline-block animate-pulse" />
             Get started in minutes
           </div>
-          <h2 className="font-black text-4xl md:text-5xl text-[#111] mb-5 leading-tight">
+          <h2 className="font-black text-[1.75rem] sm:text-4xl md:text-5xl text-[#111] mb-4 sm:mb-5 leading-tight">
             Start your journey today.
           </h2>
-          <p className="text-gray-500 text-lg font-medium mb-10">
+          <p className="text-gray-500 text-base sm:text-lg font-medium mb-8 sm:mb-10">
             Join early adopters building smarter, stronger routines with FitForge.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to={user ? "/workout" : "/register"} className="btn-brand text-base justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md sm:max-w-none mx-auto">
+            <Link to={user ? "/workout" : "/register"} className="btn-brand text-base justify-center min-h-[48px] w-full sm:w-auto">
               <span className="material-symbols-outlined text-base">arrow_forward</span>
               {user ? "Go to Dashboard" : "Get started free"}
             </Link>
-            <Link to={user ? "/calculator" : "/login"} className="btn-dark text-base justify-center">
+            <Link to={user ? "/calculator" : "/login"} className="btn-dark text-base justify-center min-h-[48px] w-full sm:w-auto">
               {user ? "Open Calculator" : "Log in"}
             </Link>
           </div>
@@ -319,7 +336,7 @@ export default function Home() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer className="border-t border-gray-100 py-8 px-4 text-center text-gray-400 text-sm font-medium">
+      <footer className="border-t border-gray-100 py-8 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] text-center text-gray-400 text-sm font-medium">
         © 2026 FitForge. Built with Google Gemini AI.
       </footer>
     </div>

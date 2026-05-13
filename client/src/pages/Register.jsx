@@ -25,7 +25,7 @@ export default function Register() {
       const { hasSession } = await Promise.race([register(name, email, password), timeoutPromise]);
       clearTimeout(timeoutId);
       if (hasSession) {
-        navigate("/", { replace: true });
+        navigate("/calculator?setup=1", { replace: true });
       } else {
         setSuccessMsg("Account created! Check your email to confirm your account before signing in.");
       }
@@ -38,9 +38,9 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[80vh] bg-[#F7F9FC] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[100dvh] bg-[#F7F9FC] flex items-center justify-center px-4 py-8 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-[28px] shadow-[0_4px_40px_rgba(0,0,0,0.08)] p-6 sm:p-10">
+        <div className="bg-white rounded-[28px] shadow-[0_4px_40px_rgba(0,0,0,0.08)] p-5 sm:p-10">
           <div className="text-center mb-8">
             <img src={logo} alt="FitForge Logo" className="h-16 w-auto mx-auto mb-4" />
             <h1 className="font-extrabold text-[28px] text-[#111] mb-2">Start for free</h1>
@@ -67,7 +67,7 @@ export default function Register() {
               <label className="block text-[#111] text-sm font-bold mb-2">Your name</label>
               <input
                 type="text"
-                className="w-full bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3.5 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-sm font-medium"
+                className="w-full min-h-[48px] bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-base sm:text-sm font-medium"
                 placeholder="John Forge"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -78,7 +78,7 @@ export default function Register() {
               <label className="block text-[#111] text-sm font-bold mb-2">Email</label>
               <input
                 type="email"
-                className="w-full bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3.5 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-sm font-medium"
+                className="w-full min-h-[48px] bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-base sm:text-sm font-medium"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -89,7 +89,7 @@ export default function Register() {
               <label className="block text-[#111] text-sm font-bold mb-2">Password</label>
               <input
                 type="password"
-                className="w-full bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3.5 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-sm font-medium"
+                className="w-full min-h-[48px] bg-[#F7F9FC] border border-gray-200 text-[#111] px-4 py-3 rounded-2xl focus:outline-none focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20 transition-all placeholder-gray-400 text-base sm:text-sm font-medium"
                 placeholder="Min. 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -100,7 +100,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-brand w-full justify-center text-base mt-2"
+              className="btn-brand w-full justify-center text-base mt-2 min-h-[48px]"
             >
               {loading ? "Creating account..." : "Get started free →"}
             </button>
@@ -109,7 +109,7 @@ export default function Register() {
 
           <p className="text-center text-gray-500 text-sm font-medium mt-6">
             Already have an account?{" "}
-            <Link to="/login" className="text-[#EF4444] font-bold hover:underline">
+            <Link to="/login" className="cursor-pointer text-[#EF4444] font-bold hover:underline">
               Sign in
             </Link>
           </p>
