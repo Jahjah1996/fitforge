@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 export default function Register() {
@@ -11,6 +11,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,9 +22,13 @@ export default function Register() {
       const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(() => reject(new Error("Request timed out after 30s. Please check your network connection.")), 30000);
       });
-      await Promise.race([register(name, email, password), timeoutPromise]);
+      const { hasSession } = await Promise.race([register(name, email, password), timeoutPromise]);
       clearTimeout(timeoutId);
-      setSuccessMsg("Account created! Check your email to confirm your account before signing in.");
+      if (hasSession) {
+        navigate("/", { replace: true });
+      } else {
+        setSuccessMsg("Account created! Check your email to confirm your account before signing in.");
+      }
     } catch (err) {
       console.error("Registration error:", err);
       setError(err.message || "Failed to register. Please try again.");

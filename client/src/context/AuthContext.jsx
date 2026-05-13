@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (name, email, password) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -99,6 +99,10 @@ export function AuthProvider({ children }) {
       }
     });
     if (error) throw error;
+    if (data.session?.user) {
+      await refreshUser(data.session.user);
+    }
+    return { hasSession: Boolean(data.session) };
   };
 
   const updateProfile = async (updates) => {
