@@ -75,7 +75,14 @@ export function AuthProvider({ children }) {
 
       setUser(fullUser);
       return fullUser;
-    } catch {
+    } catch (err) {
+      console.error("refreshUser error:", err);
+      // Don't null out the user on a profile fetch failure — fall back to basic info
+      if (sessionUser) {
+        const fallback = { id: sessionUser.id, email: sessionUser.email, name: sessionUser.user_metadata?.name || "" };
+        setUser(fallback);
+        return fallback;
+      }
       setUser(null);
       return null;
     }
@@ -107,7 +114,12 @@ export function AuthProvider({ children }) {
   }, [refreshUser]);
 
   const login = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // Wrap in a 15-second timeout so mobile users aren't stuck on "Signing in..." forever
+    const signInPromise = supabase.auth.signInWithPassword({ email, password });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Sign-in timed out. Please check your connection and try again.")), 15000)
+    );
+    const { error } = await Promise.race([signInPromise, timeoutPromise]);
     if (error) throw error;
   };
 
