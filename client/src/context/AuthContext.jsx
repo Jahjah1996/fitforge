@@ -14,15 +14,36 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", sessionUser.id)
-        .single();
+      // After sign-up, the DB trigger may insert `profiles` slightly after the session is issued.
+      // On slow mobile networks, a single read can return 0 rows; retry briefly instead of failing.
+      let profile = null;
+      let lastError = null;
+      const maxAttempts = 10;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", sessionUser.id)
+          .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        // Fallback: keep user logged in with basic info if profile table is missing/empty
+        lastError = error;
+        if (data) {
+          profile = data;
+          break;
+        }
+        if (error) {
+          break;
+        }
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 200 + attempt * 150));
+        }
+      }
+
+      if (!profile) {
+        if (lastError) {
+          console.error("Error fetching profile:", lastError);
+        }
+        // Fallback: keep user logged in with basic info if profile table is missing/empty or not ready yet
         const fallback = { id: sessionUser.id, email: sessionUser.email, name: sessionUser.user_metadata?.name || "" };
         setUser(fallback);
         return fallback;

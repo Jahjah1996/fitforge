@@ -16,12 +16,7 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      let timeoutId;
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error("Request timed out after 30s. Please check your network connection.")), 30000);
-      });
-      await Promise.race([login(email, password), timeoutPromise]);
-      clearTimeout(timeoutId);
+      await login(email, password);
       navigate("/workout", { replace: true });
     } catch (err) {
       setError(err.message || "Failed to log in. Please check your credentials.");

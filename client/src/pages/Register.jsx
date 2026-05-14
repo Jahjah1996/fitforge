@@ -18,12 +18,7 @@ export default function Register() {
     setLoading(true);
     setError("");
     try {
-      let timeoutId;
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error("Request timed out after 30s. Please check your network connection.")), 30000);
-      });
-      const { hasSession } = await Promise.race([register(name, email, password), timeoutPromise]);
-      clearTimeout(timeoutId);
+      const { hasSession } = await register(name, email, password);
       if (hasSession) {
         navigate("/calculator?setup=1", { replace: true });
       } else {
